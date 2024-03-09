@@ -1,0 +1,3 @@
+[submodule "tiny-idp"]
+	path = tiny-idp
+	url = git@github.com:asmsuechan/tiny-idp.git
