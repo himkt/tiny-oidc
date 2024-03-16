@@ -1,9 +1,51 @@
 use axum::{
-    response::IntoResponse, routing::{get, post}, Router
+    http::StatusCode, response::IntoResponse, routing::{get, post}, Form, Json, Router
 };
+use serde::{Deserialize, Serialize};
 
-async fn login() -> impl IntoResponse {
-    {}
+
+#[derive(Deserialize)]
+struct LoginParam {
+    id: usize,
+    password: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct User {
+    id: usize,
+    email: String,
+    password: String,
+    client_id: String,
+}
+
+#[derive(Serialize)]
+struct UnauthorizedUser {
+    error: String,
+}
+
+#[derive(Serialize)]
+#[serde(untagged)]
+enum LoginResponse {
+    Success { user: User },
+    Error { error: String }
+}
+
+async fn login(Form(params): Form<LoginParam>) -> impl IntoResponse {
+    if params.id == 1 && params.password == "p@ssw0rd" {
+        let user = User {
+            id: params.id,
+            email: "tiny-idp@asmsuechan.com".to_string(),
+            password: params.password,
+            client_id: "tiny-client".to_string(),
+        };
+        let response = LoginResponse::Success { user };
+        return (StatusCode::ACCEPTED, Json(response));
+    }
+    let error = LoginResponse::Error {
+        error: "unauthorized".to_string(),
+    };
+    (StatusCode::UNAUTHORIZED, Json(error))
 }
 
 #[tokio::main]
