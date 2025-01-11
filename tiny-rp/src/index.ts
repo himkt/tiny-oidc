@@ -36,19 +36,9 @@ app.get("/", async (_, res) => {
 
 app.get("/oidc/callback", async (req, res) => {
   // TODO: トークンを検証するコードは後で追加します
-  const code = String(req.query.code);
-  res.status(200);
-  res.json({ code });
-  return;
-});
-
-// redirect_uriをここに実装
-// トークンエンドポイントを叩く
-app.get("/oidc/callback", async (req, res) => {
   const redirect_uri = "http://localhost:4000/oidc/callback";
   const code = String(req.query.code);
   const scope = String(req.query.scope);
-
   try {
     const tokenResponse = await fetch(
       "http://localhost:3000/openid-connect/token",
@@ -59,17 +49,16 @@ app.get("/oidc/callback", async (req, res) => {
         },
         body: new URLSearchParams({
           code,
-          redirect_uri,
+          // code: "invalid_code",
+          redirect_uri, // TODO(himkt); なんでこれ必要なの？ -> 検証で使うからっぽい？
           scope,
           grant_type: "authorization_code",
+          // grant_type: "invalid_grant", // authorization_codeから変更 -> ちゃんとエラーになる
           client_id: "tiny-client",
         }),
       }
     );
     const tokenSet = await tokenResponse.json();
-    console.log(tokenSet);
-    // TODO: トークンを検証するコードは後で追加します
-    res.status(200);
     res.json({ tokenSet });
     return;
   } catch (error) {
