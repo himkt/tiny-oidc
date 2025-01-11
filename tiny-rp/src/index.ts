@@ -34,6 +34,14 @@ app.get("/", async (_, res) => {
 </html>`);
 });
 
+app.get("/oidc/callback", async (req, res) => {
+  // TODO: トークンを検証するコードは後で追加します
+  const code = String(req.query.code);
+  res.status(200);
+  res.json({ code });
+  return;
+});
+
 // redirect_uriをここに実装
 // トークンエンドポイントを叩く
 app.get("/oidc/callback", async (req, res) => {
