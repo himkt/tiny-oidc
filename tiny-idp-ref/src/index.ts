@@ -6,14 +6,18 @@ import { User } from "./models/user";
 import { AuthCode } from './models/auth_code';
 import { postToken } from "./controllers/token_controller";
 import { AccessToken } from "./models/access_token";
+import { Client } from "./models/client";
+import { postIntrospect } from "./controllers/introspect_controller";
 
 const users: User[] = [{ id: 1, email: 'himkt', password: 'p@ss', clientId: 'tiny-client' }];
 const authCodes: AuthCode[] = [];
 const accessTokens: AccessToken[] = []; // 追加
+const clients: Client[] = [{ clientId: 'tiny-client', clientSecret: 'c1!3n753cr37' }]; // 追加
 const db = {
   users,
   authCodes,
-  accessTokens, // 追加
+  accessTokens,
+  clients // 追加
 };
 
 const server = http.createServer(
@@ -43,6 +47,15 @@ const server = http.createServer(
       req.on('end', () => {
         const params = new URLSearchParams(body);
         postToken(db, params, res);
+      });
+    } else if (req.url?.split('?')[0] === '/openid-connect/introspect' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
+      req.on('end', () => {
+        const params = new URLSearchParams(body);
+        postIntrospect(db, params, res);
       });
     } else {
       res.writeHead(404, { "Content-Type": "text/plain" });

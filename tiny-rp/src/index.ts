@@ -55,6 +55,8 @@ app.get("/oidc/callback", async (req, res) => {
           grant_type: "authorization_code",
           // grant_type: "invalid_grant", // authorization_codeから変更 -> ちゃんとエラーになる
           client_id: "tiny-client",
+          // client_secret: "invalid_secret", // 追加
+          client_secret: "c1!3n753cr37",
         }),
       }
     );

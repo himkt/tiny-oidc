@@ -2,6 +2,7 @@ import { Context } from "../models/context";
 import { ServerResponse } from "http";
 import { AccessToken } from "../models/access_token";
 import { AuthCode } from "../models/auth_code";
+import { Client } from "../models/client";
 
 type ResponseData = {
   id_token: string;
@@ -15,6 +16,7 @@ type RequestParams = {
   code: string | null;
   redirectUri: string | null;
   clientId: string | null;
+  clientSecret: string | null; // 追加
 };
 type TokenError =
   | 'invalid_request'
@@ -28,7 +30,7 @@ type ErrorResponse = {
   error_description?: string;
   error_uri?: string;
 };
-const validate = (requestParams: RequestParams, authCode?: AuthCode): TokenError | null => { // authCodeを追加
+const validate = (requestParams: RequestParams, authCode?: AuthCode, client?: Client): TokenError | null => { // authCodeを追加
   if (!requestParams.clientId || !requestParams.code || !requestParams.grantType || !requestParams.redirectUri) {
     return 'invalid_request';
   }
@@ -39,6 +41,9 @@ const validate = (requestParams: RequestParams, authCode?: AuthCode): TokenError
   if (!authCode || authCode.usedAt || authCode.redirectUri !== requestParams.redirectUri) {
     return 'invalid_grant';
   }
+  if (!client || client.clientSecret !== requestParams.clientSecret) {
+    return 'invalid_client';
+  }
   return null;
 };
 
@@ -48,13 +53,16 @@ export const postToken = (db: Context, params: URLSearchParams, res: ServerRespo
 
   const grantType = params.get('grant_type');
   const redirectUri = params.get('redirect_uri');
-  const requestParams: RequestParams = { grantType, code, redirectUri, clientId };
+  const clientSecret = params.get('client_secret');
+
+  const client = db.clients.find((c) => c.clientId === clientId);
+  const requestParams: RequestParams = { grantType, code, redirectUri, clientId, clientSecret };
 
   // NOTE: 未使用の認可コードを見つけてくる
   const authCode = db.authCodes.find((ac) => {
     return ac.code === code && ac.clientId === clientId && ac.expiresAt > new Date();
   });
-  const validateError = validate(requestParams, authCode);
+  const validateError = validate(requestParams, authCode, client); // clientを追加
   if (validateError) {
     res.writeHead(400, {
       "Content-Type": "application/json",
