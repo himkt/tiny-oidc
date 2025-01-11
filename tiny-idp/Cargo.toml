@@ -1,5 +1,5 @@
 [package]
-name = "tiny-oidc"
+name = "tiny-idp"
 version = "0.1.0"
 edition = "2021"
 
