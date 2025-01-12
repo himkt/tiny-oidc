@@ -89,7 +89,7 @@ export const postToken = (db: Context, params: URLSearchParams, res: ServerRespo
     Pragma: 'no-cache'
   });
   const jwtService = new JwtService(); // 追加
-  const jwt = jwtService.generate('http://localhost:3000', 'tiny-client'); // 追加
+  const jwt = jwtService.generate('http://localhost:3000', 'tiny-client', authCode!.nonce!);
   const data: ResponseData = {
     id_token: jwt, // 変更
     access_token: accessToken.token, // 追加

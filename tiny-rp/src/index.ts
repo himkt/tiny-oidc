@@ -2,6 +2,7 @@
 import express from "express";
 import { Issuer } from "openid-client";
 import crypto from 'crypto';
+import session from "express-session";
 
 // NOTE: base64urlをデコードする便利関数
 const base64urlDecode = (input: string) =>{
@@ -25,7 +26,27 @@ const verifyToken = (token: string, jwk: string) => {
   return verify.verify(publicKey, Buffer.from(decodedSignature, "base64"));
 };
 
+const decodeToken = (token: string) => {
+  const [encodedHeader, encodedPayload, _encodedSignature] = token.split(".");
+  const header = JSON.parse(base64urlDecode(encodedHeader));
+  const payload = JSON.parse(base64urlDecode(encodedPayload));
+  return { header, payload };
+};
+
 const app = express();
+app.use(
+  session({
+    secret: "tiny-rp-secret",
+    cookie: {},
+  })
+);
+// https://www.typescriptlang.org/docs/handbook/declaration-merging.html#module-augmentation
+declare module "express-session" {
+  interface SessionData {
+    state: string;
+    nonce: string; // 追加
+  }
+}
 const port = 4000;
 
 const issuer = new Issuer({
@@ -40,10 +61,17 @@ const client = new Client({
   client_secret: "hoge",
 });
 
-app.get("/", async (_, res) => {
+app.get("/", async (req, res) => {
+  // https://openid-foundation-japan.github.io/rfc6749.ja.html#CSRF
+  const state = crypto.randomBytes(16).toString('hex');
+  req.session.state = state;
+  const nonce = crypto.randomBytes(16).toString("hex");
+  req.session.nonce = nonce;
   const authorizationUri = client.authorizationUrl({
     redirect_uri: "http://localhost:4000/oidc/callback",
     scope: "openid",
+    state,
+    nonce,
   });
   res.send(`<!DOCTYPE html>
 <html>
@@ -58,6 +86,12 @@ app.get("/", async (_, res) => {
 });
 
 app.get("/oidc/callback", async (req, res) => {
+  if (req.session.state !== req.query.state) {
+    res.status(400);
+    res.json({ error: "invalid state" });
+    return;
+  }
+
   // TODO: トークンを検証するコードは後で追加します
   const redirect_uri = "http://localhost:4000/oidc/callback";
   const code = String(req.query.code);
@@ -85,6 +119,11 @@ app.get("/oidc/callback", async (req, res) => {
     );
     const tokenSet = await tokenResponse.json();
     const idToken = tokenSet.id_token;
+    if (decodeToken(idToken).payload.nonce !== req.session.nonce) {
+      res.status(400);
+      res.json({ error: "invalid nonce" });
+      return;
+    }
     const configuration = await (
       await fetch(
         "http://localhost:3000/openid-connect/.well-known/openid-configuration"

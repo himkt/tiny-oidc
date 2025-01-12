@@ -8,6 +8,8 @@ type QueryParams = {
   responseType: string | string[] | undefined;
   clientId: string | string[] | undefined;
   redirectUri: string | string[] | undefined;
+  state: string | string[] | undefined; // 追加
+  nonce: string | string[] | undefined;
 };
 
 type AuthCodeError =
@@ -45,13 +47,19 @@ const validate = (query: QueryParams): ValidateError | null => {
   const validClientIds = ["tiny-client"];
   const redirectUri = query.redirectUri;
   const clientId = query.clientId;
+  const state = query.state;
+  const nonce = query.nonce;
   if (
     !redirectUri ||
     Array.isArray(redirectUri) ||
     !validRedirectUris.includes(redirectUri) ||
     !clientId ||
     Array.isArray(clientId) ||
-    !validClientIds.includes(clientId)
+    !validClientIds.includes(clientId) ||
+    !state ||
+    Array.isArray(state) ||
+    !nonce ||
+    Array.isArray(nonce)
   ) {
     return { authCodeError: "invalid_request", target: "resourceOwner" };
   }
@@ -87,7 +95,9 @@ export const getAuth = (db: Context, query: ParsedUrlQuery, res: ServerResponse)
     const redirectUri = query.redirect_uri;
 
     const responseType = query.response_type;
-    const queryParams: QueryParams = { scope, responseType, clientId, redirectUri };
+    const state = query.state;
+    const nonce = query.nonce;
+    const queryParams: QueryParams = { scope, responseType, clientId, redirectUri, state, nonce };
 
     const validated = validate(queryParams);
     if (validated) {
@@ -111,6 +121,8 @@ export const getAuth = (db: Context, query: ParsedUrlQuery, res: ServerResponse)
     template = template.replace(/{client_id}/g, String(clientId));
     template = template.replace(/{redirect_uri}/g, String(redirectUri));
     template = template.replace(/{scope}/g, String(scope));
+    template = template.replace(/{state}/g, String(query.state));
+    template = template.replace(/{nonce}/g, String(nonce));
     res.end(template);
   } catch (e) {
     // NOTE: エラー時はserver_errorを返すという仕様も決まっている
