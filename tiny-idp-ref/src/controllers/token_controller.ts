@@ -3,6 +3,7 @@ import { ServerResponse } from "http";
 import { AccessToken } from "../models/access_token";
 import { AuthCode } from "../models/auth_code";
 import { Client } from "../models/client";
+import { JwtService } from "../services/jwt_service";
 
 type ResponseData = {
   id_token: string;
@@ -87,8 +88,10 @@ export const postToken = (db: Context, params: URLSearchParams, res: ServerRespo
     'Cache-Control': 'no-store',
     Pragma: 'no-cache'
   });
+  const jwtService = new JwtService(); // 追加
+  const jwt = jwtService.generate('http://localhost:3000', 'tiny-client'); // 追加
   const data: ResponseData = {
-    id_token: 'dummy-id-token',
+    id_token: jwt, // 変更
     access_token: accessToken.token, // 追加
     token_type: 'Bearer',
     expires_in: 86400

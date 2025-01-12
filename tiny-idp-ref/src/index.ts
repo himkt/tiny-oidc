@@ -8,6 +8,8 @@ import { postToken } from "./controllers/token_controller";
 import { AccessToken } from "./models/access_token";
 import { Client } from "./models/client";
 import { postIntrospect } from "./controllers/introspect_controller";
+import { getJwks } from "./controllers/jwks_controller";
+import { getConfiguration } from "./controllers/configuration_controller";
 
 const users: User[] = [{ id: 1, email: 'himkt', password: 'p@ss', clientId: 'tiny-client' }];
 const authCodes: AuthCode[] = [];
@@ -57,6 +59,10 @@ const server = http.createServer(
         const params = new URLSearchParams(body);
         postIntrospect(db, params, res);
       });
+    } else if (req.url?.split('?')[0] === '/openid-connect/jwks' && req.method === 'GET') {
+      getJwks(res);
+    } else if (req.url?.split('?')[0] === '/openid-connect/.well-known/openid-configuration' && req.method === 'GET') {
+      getConfiguration(res);
     } else {
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("Page not found");
